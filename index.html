@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ultimate Offensive Security Command Hub v5.0</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            cyberbg: '#020617',
+            cybersky: '#38bdf8',
+            cyberemerald: '#10b981',
+            cybercard: '#0f172a',
+            cyberborder: '#1e293b',
+            cyberalert: '#f43f5e'
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="stylesheet" href="app/styles.css" />
+</head>
+<body class="flex h-screen overflow-hidden antialiased selection:bg-cybersky selection:text-cyberbg text-sm">
+  <div id="mobileOverlay" class="fixed inset-0 bg-black/80 z-40 hidden backdrop-blur-sm transition-opacity" aria-hidden="true"></div>
+
+  <div id="settingsModal" class="fixed inset-0 bg-black/80 z-[60] hidden flex-col justify-center items-center backdrop-blur-sm fade-in px-4">
+    <div class="bg-cybercard border border-cyberborder p-6 rounded-lg w-full max-w-md shadow-2xl shadow-cybersky/20">
+      <h2 class="text-xl font-bold text-white mb-2 flex items-center gap-2">⚙ Environment Settings</h2>
+      <p class="text-xs text-slate-400 mb-6">Add your Gemini API key to enable AI helpers. Saved only in your browser local storage.</p>
+      <label class="block text-cybersky text-xs uppercase tracking-wider font-bold mb-2">Gemini API Key</label>
+      <input type="password" id="apiKeyInput" class="input-field mb-6" placeholder="AIzaSy..." />
+      <div class="flex justify-end gap-3">
+        <button id="closeSettings" class="px-4 py-2 text-slate-400 hover:text-white text-sm font-bold transition-colors">Cancel</button>
+        <button id="saveSettings" class="px-4 py-2 bg-cybersky text-black font-bold rounded text-sm hover:bg-sky-400 transition-colors shadow-lg shadow-cybersky/20">Save Configuration</button>
+      </div>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="fixed inset-y-0 left-0 w-72 bg-cyberbg border-r border-cyberborder flex flex-col h-full overflow-y-auto z-50 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out shadow-2xl md:shadow-none">
+    <div class="p-6 border-b border-cyberborder flex justify-between items-center">
+      <div>
+        <h1 class="text-xl font-bold text-white tracking-wider flex items-center gap-2"><span class="text-cybersky">☠</span> ARSENAL</h1>
+        <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-widest">Command Hub v5.0</p>
+      </div>
+      <button id="closeSidebarBtn" class="md:hidden text-slate-400 hover:text-white" aria-label="Close sidebar">✕</button>
+    </div>
+
+    <div class="p-4 border-b border-cyberborder space-y-2">
+      <div class="flex gap-2">
+        <button id="btnExport" class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded text-slate-300 transition-colors">📥 Export JSON</button>
+        <label class="flex-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold py-2 rounded text-slate-300 transition-colors text-center cursor-pointer">📤 Import
+          <input type="file" id="btnImport" class="hidden" accept=".json" />
+        </label>
+      </div>
+      <button id="btnResetState" class="w-full bg-slate-900 hover:bg-slate-800 text-xs font-bold py-2 rounded text-slate-300 border border-cyberborder">♻ Reset Inputs & Filters</button>
+    </div>
+
+    <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="categoryNav"></nav>
+  </aside>
+
+  <div class="flex-1 flex flex-col h-full relative overflow-hidden">
+    <header class="bg-cyberbg/95 backdrop-blur-md border-b border-cyberborder sticky top-0 z-30 shadow-lg shadow-black/50">
+      <div class="p-4 md:p-5">
+        <div class="flex justify-between items-center mb-3 md:hidden">
+          <button id="openSidebarBtn" class="bg-cybercard border border-cyberborder text-cybersky px-3 py-1.5 rounded text-sm font-bold">☰ Menu</button>
+          <button id="openSettingsBtnMobile" class="text-slate-300 text-xs font-bold">⚙ AI Config</button>
+        </div>
+
+        <div class="hidden md:flex justify-between items-center mb-3">
+          <p class="text-slate-400 text-xs">Define global variables once. They auto-inject into all commands.</p>
+          <button id="openSettingsBtn" class="text-slate-400 hover:text-cybersky text-xs font-bold transition-colors">⚙ AI Config</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div><label for="inputTarget" class="label">🎯 Target Domain</label><input type="text" id="inputTarget" placeholder="example.com" class="input-field" /></div>
+          <div><label for="inputIP" class="label">🌐 Attacker IP / LHOST</label><input type="text" id="inputIP" placeholder="10.10.14.5" class="input-field" /></div>
+          <div><label for="inputSelector" class="label">🔑 User / Selector</label><input type="text" id="inputSelector" placeholder="admin / blind-xss-id" class="input-field" /></div>
+          <div><label for="inputWordlist" class="label">📄 Wordlist Path</label><input type="text" id="inputWordlist" placeholder="/usr/share/wordlists/seclists/..." class="input-field" /></div>
+          <div><label for="inputSearch" class="label">🔍 Search Arsenal</label><input type="text" id="inputSearch" placeholder="Search tools, tags, cmd" class="input-field" /></div>
+        </div>
+        <p class="text-[11px] mt-2 text-slate-400" id="statusBar">Ready.</p>
+      </div>
+    </header>
+
+    <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-[#020617]" id="mainContent">
+      <div id="overviewSection" class="mb-8 fade-in">
+        <div class="mb-4">
+          <h2 class="text-xl font-bold text-white mb-1">Arsenal Overview</h2>
+          <p class="text-slate-400 text-xs">Comprehensive bug-bounty + penetration testing command base with resilient UI behavior.</p>
+        </div>
+        <div class="bg-cybercard border border-cyberborder rounded-lg p-4 shadow-lg flex justify-center items-center">
+          <div class="chart-container"><canvas id="arsenalChart"></canvas></div>
+        </div>
+      </div>
+
+      <div class="mb-4 pb-2 border-b border-cyberborder flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3">
+        <div>
+          <h2 class="text-xl font-bold text-white tracking-wide" id="currentCategoryTitle">All Tools</h2>
+          <p class="text-slate-400 text-xs mt-1" id="toolCountLabel">Loading...</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button id="filterFavBtn" class="chip">⭐ Favorites</button>
+          <button class="chip filter-tag" data-tag="active">Active</button>
+          <button class="chip filter-tag" data-tag="passive">Passive</button>
+          <button class="chip" id="filterOfflineBtn">Offline</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 xl:grid-cols-2 gap-5" id="toolsGrid"></div>
+
+      <div id="emptyState" class="hidden flex-col items-center justify-center py-20 text-center fade-in">
+        <span class="text-4xl mb-4 text-slate-600">📭</span>
+        <h3 class="text-lg font-bold text-white">No tools found</h3>
+        <button id="clearFiltersBtn" class="mt-4 text-cybersky text-sm font-bold hover:underline">Clear all filters</button>
+      </div>
+
+      <div id="toast" class="fixed bottom-5 right-5 bg-cyberemerald text-black font-bold px-4 py-2 rounded transform transition-transform translate-y-24 opacity-0 z-50 flex items-center shadow-lg shadow-cyberemerald/20"><span class="mr-2">📋</span> <span id="toastMsg">Command Copied!</span></div>
+    </main>
+  </div>
+
+  <script src="app/app.js"></script>
+</body>
+</html>
